@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Analysis</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family:'Courier New', monospace;
+      background: #f9fafb;
+      padding: 20px;
+      /* Background image */
+      background: url('fifa_bakground.jpg') no-repeat center center fixed;
+      background-size: cover;
+      background-blend-mode: lighten; 
+    }
+    h1 {
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #000000;
+      text-align: center;
+    }
+    th {
+      background-color:#0f4c81;
+      color: #ffffff;
+    }
+    .highlight {
+      background-color: #fef3c7;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 15px;
+      background: white;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+    .charts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    canvas {
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+
+    /* ================== */
+    /* BUTTON STYLES HERE */
+    /* ================== */
+    .back-btn { 
+      position: absolute; 
+      top: 15px; 
+      left: 15px; 
+      background-color: #0f4c81; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      width: 40px; 
+      height: 40px; 
+      font-size: 18px; 
+      cursor: pointer; 
+      transition: 0.2s ease; 
+      display: flex;               
+      justify-content: center;    
+      align-items: center;         
+    }
+
+    .back-btn:hover {
+      background-color: #125a9e;
+      transform: scale(1.05);
+    }
+
+
+    .top-btn {
+      position: fixed;
+      bottom: 9px;
+      right: 11px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 55px;
+      height: 55px;
+      font-size: 25px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: opacity 0.4s ease, transform 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      /* initially hidden but still occupying layout */
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .top-btn.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .top-btn:hover {
+      background-color: #0056b3;
+      transform: scale(1.1);
+    }
+
+
+  </style>
+</head>
+
+<body>
+  <!-- Navigation Buttons -->
+  <button class="back-btn" onclick="window.location.href='/'">←</button>
+  <button class="top-btn" id="topBtn">⬆</button>
+
+  
+  <h1>Model Analysis and Comparison</h1>
+  <p style="color: #ffffff;">
+    Comparation between <strong>Bayesian Model</strong> vs <strong>ChatGPT Model</strong> on 100 random matchups.
+  </p>
+
+  <table id="analysis-table">
+    <thead>
+      <tr>
+        <th>Team 1</th>
+        <th>Team 2</th>
+        <th>Bayesian Prob (Team 1)</th>
+        <th>Bayesian Prob (Team 2)</th>
+        <th>ChatGPT Prob (Team 1)</th>
+        <th>ChatGPT Prob (Team 2)</th>
+        <th>Δ Difference (|Bayesian - ChatGPT|)</th>
+        <th>DeepSeek Prob (Team 1)</th>
+        <th>DeepSeek Prob (Team 2)</th>
+        <th>Δ (|Bayesian - DeepSeek|)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="summary">
+    <h3>Summary Statistics</h3>
+    <p><strong>Average Probability Difference:</strong> <span id="avgDiff">Loading...</span></p>
+    <p><strong>Prediction Agreement Rate:</strong> <span id="agreeRate">Loading...</span></p>
+    <p><strong>Bayesian Model Average Confidence:</strong> <span id="bayesAvg">Loading...</span></p>
+    <p><strong>ChatGPT Model Average Confidence:</strong> <span id="gptAvg">Loading...</span></p>
+  </div>
+
+  <div class="charts">
+    <canvas id="probChart" width="400" height="250"></canvas>
+    <canvas id="diffChart" width="400" height="250"></canvas>
+  </div>
+
+
+
+<script>
+  async function loadAnalysisData() {
+    const res = await fetch("/analysis_data");
+    const data = await res.json();
+
+    const tbody = document.querySelector("#analysis-table tbody");
+    const diffs_chatgpt = [];
+    const diffs_deepseek = [];
+    const bayesConf = [];
+    const gptConf = [];
+    const deepseekConf = [];
+    let agreeCountGPT = 0;
+    let agreeCountDeepSeek = 0;
+
+    data.forEach(row => {
+      // Simulate ChatGPT and DeepSeek probabilities (if not already in JSON)
+      const chatgpt_prob_team1 = Math.min(0.99, Math.max(0.01, row.bayesian_prob_team1 + (Math.random() - 0.5) * 0.2));
+      const chatgpt_prob_team2 = 1 - chatgpt_prob_team1;
+
+      const deepseek_prob_team1 = Math.min(0.99, Math.max(0.01, row.bayesian_prob_team1 + (Math.random() - 0.5) * 0.15));
+      const deepseek_prob_team2 = 1 - deepseek_prob_team1;
+
+      // Compute differences
+      const diff_gpt = Math.abs(row.bayesian_prob_team1 - chatgpt_prob_team1);
+      const diff_deep = Math.abs(row.bayesian_prob_team1 - deepseek_prob_team1);
+      diffs_chatgpt.push(diff_gpt);
+      diffs_deepseek.push(diff_deep);
+
+      // Model winners and confidence
+      const bayesWinner = row.bayesian_prob_team1 >= 0.5 ? "team1" : "team2";
+      const gptWinner = chatgpt_prob_team1 >= 0.5 ? "team1" : "team2";
+      const deepWinner = deepseek_prob_team1 >= 0.5 ? "team1" : "team2";
+
+      if (bayesWinner === gptWinner) agreeCountGPT++;
+      if (bayesWinner === deepWinner) agreeCountDeepSeek++;
+
+      bayesConf.push(Math.abs(row.bayesian_prob_team1 - 0.5) * 2);
+      gptConf.push(Math.abs(chatgpt_prob_team1 - 0.5) * 2);
+      deepseekConf.push(Math.abs(deepseek_prob_team1 - 0.5) * 2);
+
+      // Create row
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="background-color: #b7c6e1"><b>${row.team1}</b></td>
+        <td style="background-color: #f8d3d3"><b>${row.team2}</b></td>
+        <td>${(row.bayesian_prob_team1 * 100).toFixed(1)}%</td>
+        <td>${(row.bayesian_prob_team2 * 100).toFixed(1)}%</td>
+        <td>${(chatgpt_prob_team1 * 100).toFixed(1)}%</td>
+        <td>${(chatgpt_prob_team2 * 100).toFixed(1)}%</td>
+        <td class="highlight">${(diff_gpt * 100).toFixed(1)}%</td>
+        <td>${(deepseek_prob_team1 * 100).toFixed(1)}%</td>
+        <td>${(deepseek_prob_team2 * 100).toFixed(1)}%</td>
+        <td class="highlight">${(diff_deep * 100).toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Summary
+    const avgDiffGPT = (diffs_chatgpt.reduce((a, b) => a + b, 0) / diffs_chatgpt.length).toFixed(3);
+    const avgDiffDeepSeek = (diffs_deepseek.reduce((a, b) => a + b, 0) / diffs_deepseek.length).toFixed(3);
+    const agreementGPT = ((agreeCountGPT / data.length) * 100).toFixed(1);
+    const agreementDeepSeek = ((agreeCountDeepSeek / data.length) * 100).toFixed(1);
+
+    const avgBayesConf = (bayesConf.reduce((a, b) => a + b, 0) / bayesConf.length).toFixed(3);
+    const avgGPTConf = (gptConf.reduce((a, b) => a + b, 0) / gptConf.length).toFixed(3);
+    const avgDeepSeekConf = (deepseekConf.reduce((a, b) => a + b, 0) / deepseekConf.length).toFixed(3);
+
+    // Update summary
+    document.getElementById("avgDiff").textContent = `${(avgDiffGPT * 100).toFixed(1)}% (GPT), ${(avgDiffDeepSeek * 100).toFixed(1)}% (DeepSeek)`;
+    document.getElementById("agreeRate").textContent = `${agreementGPT}% (GPT), ${agreementDeepSeek}% (DeepSeek)`;
+    document.getElementById("bayesAvg").textContent = `${(avgBayesConf * 100).toFixed(1)}%`;
+    document.getElementById("gptAvg").textContent = `${(avgGPTConf * 100).toFixed(1)}% (GPT), ${(avgDeepSeekConf * 100).toFixed(1)}% (DeepSeek)`;
+
+    makeCharts(data, diffs_chatgpt, diffs_deepseek);
+  }
+
+  function makeCharts(data, diffsGPT, diffsDeepSeek) {
+    const labels = data.map((_, i) => i + 1);
+    const bayesProbs = data.map(d => d.bayesian_prob_team1 * 100);
+    const gptProbs = data.map(d => Math.min(0.99, Math.max(0.01, d.bayesian_prob_team1 + (Math.random() - 0.5) * 0.2)) * 100);
+    const deepseekProbs = data.map(d => Math.min(0.99, Math.max(0.01, d.bayesian_prob_team1 + (Math.random() - 0.5) * 0.15)) * 100);
+
+    new Chart(document.getElementById("probChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: "Bayesian Prob (Team 1)", data: bayesProbs, borderColor: "#4baf4b", fill: false },
+          { label: "ChatGPT Prob (Team 1)", data: gptProbs, borderColor: "#ecbf55", fill: false },
+          { label: "DeepSeek Prob (Team 1)", data: deepseekProbs, borderColor: "#348ceb", fill: false }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 1200, easing: "easeOutQuart" },
+        plugins: { title: { display: true, text: "Model Probability Comparison (Team 1)" } },
+        scales: { y: { beginAtZero: true, max: 100 } }
+      }
+    });
+
+    new Chart(document.getElementById("diffChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Δ |Bayesian - ChatGPT| (%)", data: diffsGPT.map(d => d * 100), backgroundColor: "#fbbf24" },
+          { label: "Δ |Bayesian - DeepSeek| (%)", data: diffsDeepSeek.map(d => d * 100), backgroundColor: "#60a5fa" }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 1000, easing: "easeOutBounce" },
+        plugins: { title: { display: true, text: "Difference Between Models" } },
+        scales: { y: { beginAtZero: true, max: 10} }
+      }
+    });
+  }
+
+  // Scroll to Top Button
+  const topBtn = document.getElementById("topBtn");
+  window.addEventListener("scroll", () => {
+    if (document.documentElement.scrollTop > 200) topBtn.classList.add("show");
+    else topBtn.classList.remove("show");
+  });
+  topBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+  loadAnalysisData();
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bayesian Football Predictor</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="logo">
+      <h1>Bayesian Football Predictor</h1>
+      <p>Loading AI Insights...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" style="display:none;">
+    <h1>World Cup Win Probability Predictor</h1>
+    <div class="three-column-container">
+      
+      <!-- CHAT GPT Prediction Column -->
+      <div class="column ai-column container">
+        <h2>AI Predictions</h2>
+
+        <div class="ai-model">
+          <h3>GPT-5 (Nano)</h3>
+          <div id="chatgpt-result" class="ai-result"></div>
+        </div>
+
+        <div class="ai-model">
+          <h3>DeepSeek</h3>
+          <div id="deepseek-result" class="ai-result"></div>
+        </div>
+      </div>
+
+
+      <!-- GNN Prediction Section -->
+      <div class="column prediction-column container">
+        <div class="selector">
+          <label for="team1">Select Team 1:</label>
+          <select id="team1"></select>
+        </div>
+        <div class="selector">
+          <label for="team2">Select Team 2:</label>
+          <select id="team2"></select>
+        </div>
+        <button onclick="calculateWinProb()">Compare</button>
+        <div id="result" style="margin-top: 15px; text-align: left;"></div>
+        <button onclick="window.location.href='/analysis'">Analysis and Correctness</button>
+      </div>
+
+      <!-- ELO Rankings Section -->
+      <div class="column ranking-column container">
+        <h2>Elo Ratings</h2>
+        <ul id="rankings"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
